@@ -9,6 +9,8 @@
 
 #if defined(__linux__)
 #define FUNC_DECL_PREFIX
+#include <unistd.h>
+#include <fcntl.h>
 #elif defined(_WIN32)
 #include <Windows.h>
 
@@ -30,7 +32,14 @@
 
 #define SO_EOF (-1)
 
-struct _so_file;
+struct _so_file {
+	unsigned short buf_size;
+	unsigned char wait;
+	int fd;
+	unsigned int flags;
+	unsigned char *curr_ptr;
+	unsigned char *buffer;
+};
 
 typedef struct _so_file SO_FILE;
 
