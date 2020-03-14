@@ -25,6 +25,7 @@
 #endif
 
 #include <stdlib.h>
+#include <string.h> /* memcpy */
 
 #define SEEK_SET	0	/* Seek from beginning of file.  */
 #define SEEK_CUR	1	/* Seek from current position.  */
@@ -38,6 +39,7 @@ struct _so_file {
 	unsigned char error;
 	int fd;
 	unsigned int flags;
+	unsigned int buf_data;
 	unsigned char *curr_ptr;
 	unsigned char *buffer;
 };

@@ -1,5 +1,7 @@
 #include "./util/so_stdio.h"
 
+#include <stdio.h>
+
 SO_FILE *so_fopen(const char *pathname, const char *mode)
 {
 	SO_FILE *file_ptr = malloc(sizeof(SO_FILE));
@@ -9,6 +11,7 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
 	file_ptr->buf_size = 0;
 	file_ptr->flags    = 0;
 	file_ptr->wait     = 0;
+	file_ptr->buf_data = 0;
 	file_ptr->error    = 0;
 	file_ptr->curr_ptr = NULL;
 	file_ptr->buffer   = NULL;
@@ -95,35 +98,100 @@ int so_fileno(SO_FILE *stream)
 	return stream ? stream->fd : SO_EOF;
 }
 
-/* TODO Intercalat */
+/* TODO Intercalat caz cu RW - poate 2 buffere */
 int so_fgetc(SO_FILE *stream)
 {
-	char buffer = -1, ret = 0;
+	int ret = 0;
 
 	if (stream) {
-		ret = loop_read(stream->fd, &buffer, 1);
-		if (ret < 1) {
-			stream->error = SO_EOF;
-			return ret;
+		if (stream->curr_ptr - stream->buffer >= stream->buf_size) {
+			stream->curr_ptr = stream->buffer;
+			stream->buf_data = 0;
 		}
-		return buffer;
+		if (stream->curr_ptr - stream->buffer >= stream->buf_data) {
+			ret = read(stream->fd, stream->curr_ptr,
+				stream->buf_size - stream->buf_data);
+			if (ret == 0) {
+				stream->error = SO_EOF;
+				return SO_EOF;
+			}
+			stream->buf_data += ret;
+		}
+		stream->curr_ptr++;
+		return *(stream->curr_ptr - 1);
 	}
 	return SO_EOF;
+}
+
+/* TODO Intercalat caz cu RW - poate 2 buffere */
+size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
+{
+	int ret = 0;
+	size_t bytes = size * nmemb;
+	size_t read_nmemb = 0;
+
+	if (stream) {
+		if (stream->buf_data == 0) {
+			stream->curr_ptr = stream->buffer;
+		} else {
+			if (stream->buf_data > bytes) {
+				memcpy(ptr, stream->curr_ptr, bytes);
+				stream->curr_ptr += bytes;
+				stream->buf_data -= bytes;
+				return nmemb;
+			} else {
+				memcpy(ptr, stream->curr_ptr, stream->buf_data);
+				ptr += stream->buf_data;
+				nmemb -= stream->buf_data / size;
+				bytes -= stream->buf_data;
+				stream->curr_ptr = stream->buffer;
+				read_nmemb += stream->buf_data / size;
+				stream->buf_data = 0;
+			}
+		}
+		while (bytes > 0) {
+			ret = read(stream->fd, stream->curr_ptr,
+				stream->buf_size - stream->buf_data);
+			if (ret == 0) {
+				stream->error = SO_EOF;
+				return 0;
+			}
+			stream->buf_data += ret;
+			if (bytes > stream->buf_data) {
+				memcpy(ptr, stream->curr_ptr, stream->buf_data);
+				ptr += stream->buf_data;
+				bytes -= stream->buf_data;
+				stream->curr_ptr = stream->buffer;
+				read_nmemb += stream->buf_data / size;
+				stream->buf_data = 0;
+			} else {
+				memcpy(ptr, stream->curr_ptr, bytes);
+				ptr += bytes;
+				stream->curr_ptr += bytes;
+				stream->buf_data -= bytes;
+				read_nmemb += bytes / size;
+				bytes = 0;
+			}
+		}
+		return read_nmemb;
+	}
+	return 0;
 }
 
 /* TODO Intercalat */
 int so_fputc(int c, SO_FILE *stream)
 {
-	char buffer = c, ret = 0;
+	char buffer = c;
+	int  ret = 0;
 
 	if (stream) {
-		stream->curr_ptr++;
 		*(stream->curr_ptr) = buffer;
+		stream->curr_ptr++;
+		stream->buf_data++;
 		if (buffer == '\n' ||
-		stream->curr_ptr - stream->buffer > stream->buf_size / 2) {
-			ret = loop_write(stream->fd,
-					stream->buffer,
-					stream->curr_ptr - stream->buffer);
+		stream->curr_ptr - stream->buffer >= stream->buf_size) {
+			ret = loop_write(stream->fd, stream->buffer,
+				stream->buf_data);
 			if (ret == SO_EOF) {
 				stream->error = SO_EOF;
 				return SO_EOF;
@@ -136,21 +204,22 @@ int so_fputc(int c, SO_FILE *stream)
 }
 
 /* TODO */
-size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
-{
-	return 0;
-}
-
-/* TODO */
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
 	return 0;
 }
 
-/* TODO */
 int so_fflush(SO_FILE *stream)
 {
-	return 0;
+	char ret;
+
+	if (stream) {
+		ret = loop_write(stream->fd, stream->buffer,
+				stream->curr_ptr - stream->buffer);
+		stream->curr_ptr = stream->buffer;
+		return ret;
+	}
+	return SO_EOF;
 }
 
 /* TODO */
@@ -198,24 +267,26 @@ int so_ferror(SO_FILE *stream)
 
 char loop_read(int fd, void *buf, size_t count)
 {
-	size_t ret = 1;
+	size_t ret = 1, totalRead = 0;
 
 	while (ret > 0 && count > 0) {
 		ret = read(fd, buf, count);
 		buf += ret;
 		count -= ret;
+		totalRead += ret;
 	}
-	return (ret == 0) ? SO_EOF : 0;
+	return (ret == 0) ? -totalRead : totalRead;
 }
 
 char loop_write(int fd, void *buf, size_t count)
 {
-	size_t ret = 1;
+	size_t ret = 1, totalWritten = 0;
 
 	while (ret > 0 && count > 0) {
 		ret = write(fd, buf, count);
 		buf += ret;
 		count -= ret;
+		totalWritten += ret;
 	}
-	return (ret == 0) ? SO_EOF : 0;
+	return (ret == 0) ? -totalWritten : totalWritten;
 }
