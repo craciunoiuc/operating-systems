@@ -79,6 +79,11 @@ int so_fclose(SO_FILE *stream)
 	int ret = 0;
 
 	if (stream) {
+		ret = so_fflush(stream);
+		if (ret == SO_EOF) {
+			stream->error = SO_EOF;
+			return SO_EOF;
+		}
 		ret = close(stream->fd);
 		if (ret != 0) {
 			stream->error = 1;
@@ -188,15 +193,14 @@ int so_fputc(int c, SO_FILE *stream)
 		*(stream->curr_ptr) = buffer;
 		stream->curr_ptr++;
 		stream->buf_data++;
-		if (buffer == '\n' ||
-		stream->curr_ptr - stream->buffer >= stream->buf_size) {
-			ret = loop_write(stream->fd, stream->buffer,
-				stream->buf_data);
-			if (ret == SO_EOF) {
+		if (buffer == '\n' || stream->buf_data == stream->buf_size) {
+			ret = write(stream->fd, stream->buffer, stream->buf_data);
+			if (ret <= 0) {
 				stream->error = SO_EOF;
 				return SO_EOF;
 			}
-			stream->curr_ptr = stream->buffer;
+			stream->curr_ptr -= ret;
+			stream->buf_data -= ret;
 		}
 		return c;
 	}
@@ -217,6 +221,7 @@ int so_fflush(SO_FILE *stream)
 		ret = loop_write(stream->fd, stream->buffer,
 				stream->curr_ptr - stream->buffer);
 		stream->curr_ptr = stream->buffer;
+		stream->buf_data = 0;
 		return ret;
 	}
 	return SO_EOF;
