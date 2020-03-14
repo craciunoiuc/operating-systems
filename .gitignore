@@ -15,10 +15,18 @@
 *.lo
 
 # Shared objects (inc. Windows DLLs)
-#*.dll # TODO temporary
-#*.so  # TODO temporary
-#*.so.*
+*.dll # TODO temporary
+*.so  # TODO temporary
+*.so.*
 *.dylib
+
+# Checker files 2-stdio
+2-stdio/test*
+2-stdio/_test/
+2-stdio/_log
+2-stdio/run_all.sh
+2-stdio/*.so
+2-stdio/*.dll
 
 # Executables
 *.out
