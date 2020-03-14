@@ -35,6 +35,7 @@
 struct _so_file {
 	unsigned short buf_size;
 	unsigned char wait;
+	unsigned char error;
 	int fd;
 	unsigned int flags;
 	unsigned char *curr_ptr;
@@ -75,4 +76,9 @@ FUNC_DECL_PREFIX int so_ferror(SO_FILE *stream);
 FUNC_DECL_PREFIX SO_FILE *so_popen(const char *command, const char *type);
 FUNC_DECL_PREFIX int so_pclose(SO_FILE *stream);
 
+/* Utility function to guarantee count was read in buf from fd */
+FUNC_DECL_PREFIX char loop_read(int fd, void *buf, size_t count);
+
+/* Utility function to guarantee count was written in buf from fd */
+FUNC_DECL_PREFIX char loop_write(int fd, void *buf, size_t count);
 #endif /* SO_STDIO_H */
