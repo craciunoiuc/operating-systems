@@ -33,12 +33,12 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
 			if (mode[1] == '+') {
 				file_ptr->flags = O_RDWR | O_CREAT | O_TRUNC;
 				file_ptr->fd = open(pathname,
-						file_ptr->flags, 0644);
+						file_ptr->flags, 0777);
 				
 			} else {
 				file_ptr->flags = O_WRONLY | O_CREAT | O_TRUNC;
 				file_ptr->fd = open(pathname,
-						file_ptr->flags, 0644);
+						file_ptr->flags, 0777);
 			}
 			break;
 		}
@@ -47,12 +47,12 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
 			if (mode[1] == '+') {
 				file_ptr->flags = O_RDWR | O_APPEND | O_CREAT;
 				file_ptr->fd = open(pathname,
-						file_ptr->flags, 0644);
+						file_ptr->flags, 0777);
 
 			} else {
 				file_ptr->flags = O_WRONLY | O_CREAT | O_APPEND;
 				file_ptr->fd = open(pathname,
-						file_ptr->flags, 0644);
+						file_ptr->flags, 0777);
 			}
 			break;
 		}
@@ -180,7 +180,7 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 		}
 		return read_nmemb;
 	}
-	return 0;
+	return SO_EOF;
 }
 
 /* TODO Intercalat */
@@ -207,22 +207,76 @@ int so_fputc(int c, SO_FILE *stream)
 	return SO_EOF;
 }
 
-/* TODO */
+/* TODO Intercalat */
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
-	return 0;
+	int ret = 0, space_left = 0;
+	size_t bytes = size * nmemb;
+	size_t write_nmemb = 0;
+	if (stream) {
+		if (stream->buf_data == 0) {
+			stream->curr_ptr = stream->buffer;
+		}
+		/* There is space in the buffer */
+		space_left = stream->buf_size - stream->buf_data;
+		if (space_left >= bytes) {
+			memcpy(stream->curr_ptr, ptr, bytes);
+			stream->curr_ptr += bytes;
+			stream->buf_data += bytes;
+			return nmemb;
+		} else {
+			memcpy(stream->curr_ptr, ptr, space_left);
+			stream->curr_ptr += space_left;
+			bytes -= space_left;
+			ptr += space_left;
+			write_nmemb += space_left / size;
+			stream->buf_data += space_left;
+		}
+
+		while (bytes > 0) {
+			ret = write(stream->fd,
+				stream->buffer, stream->buf_data);
+			if (ret == 0) {
+				stream->error = SO_EOF;
+				return 0;
+			}
+			stream->buf_data -= ret;
+			stream->curr_ptr -= ret;
+			space_left = stream->buf_size - stream->buf_data;
+			if (space_left >= bytes) {
+				memcpy(stream->curr_ptr, ptr, bytes);
+				stream->curr_ptr += bytes;
+				stream->buf_data += bytes;
+				write_nmemb += bytes / size;
+				bytes = 0;
+			} else {
+				memcpy(stream->curr_ptr, ptr, space_left);
+				stream->curr_ptr += space_left;
+				stream->buf_data += space_left;
+				ptr += space_left;
+				bytes -= space_left;
+				write_nmemb += space_left / size;
+			}
+		}
+		return write_nmemb;
+	}
+	return SO_EOF;
 }
 
 int so_fflush(SO_FILE *stream)
 {
-	char ret;
+	size_t ret;
 
 	if (stream) {
-		ret = loop_write(stream->fd, stream->buffer,
-				stream->curr_ptr - stream->buffer);
-		stream->curr_ptr = stream->buffer;
-		stream->buf_data = 0;
-		return ret;
+		ret = write(stream->fd, stream->buffer, stream->buf_data);
+		if (ret == 0) {
+			puts("ERROR");
+			stream->error = SO_EOF;
+			return 0;
+		}
+		stream->curr_ptr -= ret;
+		stream->buf_data -= ret;
+		return 0;
 	}
 	return SO_EOF;
 }
