@@ -31,17 +31,23 @@
 #define SEEK_CUR	1	/* Seek from current position.  */
 #define SEEK_END	2	/* Seek from end of file.  */
 
+#define NO_OP    0
+#define WRITE_OP 1
+#define READ_OP  2
+
 #define SO_EOF (-1)
 
 struct _so_file {
 	unsigned short buf_size;
-	unsigned char wait;
-	unsigned char error;
-	int fd;
-	unsigned int flags;
-	unsigned int buf_data;
+	unsigned char  wait;
+	unsigned char  error;
+	unsigned int   file_pos;
+	unsigned int   flags;
+	unsigned short buf_data;
+	unsigned char  last_op;
 	unsigned char *curr_ptr;
 	unsigned char *buffer;
+	int fd;
 };
 
 typedef struct _so_file SO_FILE;

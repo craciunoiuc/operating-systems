@@ -13,8 +13,10 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
 	file_ptr->wait     = 0;
 	file_ptr->buf_data = 0;
 	file_ptr->error    = 0;
+	file_ptr->file_pos = 0;
 	file_ptr->curr_ptr = NULL;
 	file_ptr->buffer   = NULL;
+	file_ptr->last_op  = NO_OP;
 	
 	switch(mode[0]) {
 		case 'r': {
@@ -79,21 +81,19 @@ int so_fclose(SO_FILE *stream)
 	int ret = 0;
 
 	if (stream) {
-		ret = so_fflush(stream);
-		if (ret == SO_EOF) {
-			stream->error = SO_EOF;
-			return SO_EOF;
+		if (stream->buffer && stream->fd) {
+			ret = so_fflush(stream);
+			if (ret == SO_EOF) {
+				stream->error = SO_EOF;
+				return SO_EOF;
+			}
 		}
 		ret = close(stream->fd);
-		if (ret != 0) {
-			stream->error = 1;
-			return SO_EOF;
-		}
 		if (stream->buffer) {
 			free(stream->buffer);
 		}
 		free(stream);
-		return 0;
+		return ret;
 	}
 	return SO_EOF;
 }
@@ -103,12 +103,14 @@ int so_fileno(SO_FILE *stream)
 	return stream ? stream->fd : SO_EOF;
 }
 
-/* TODO Intercalat caz cu RW - poate 2 buffere */
+/* TODO Intercalat caz cu RW */
 int so_fgetc(SO_FILE *stream)
 {
 	int ret = 0;
 
 	if (stream) {
+		stream->last_op = READ_OP;
+		stream->file_pos++;
 		if (stream->curr_ptr - stream->buffer >= stream->buf_size) {
 			stream->curr_ptr = stream->buffer;
 			stream->buf_data = 0;
@@ -128,7 +130,7 @@ int so_fgetc(SO_FILE *stream)
 	return SO_EOF;
 }
 
-/* TODO Intercalat caz cu RW - poate 2 buffere */
+/* TODO Intercalat caz cu RW*/
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
 	int ret = 0;
@@ -136,6 +138,8 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 	size_t read_nmemb = 0;
 
 	if (stream) {
+		stream->last_op = READ_OP;
+		stream->file_pos += bytes;
 		if (stream->buf_data == 0) {
 			stream->curr_ptr = stream->buffer;
 		} else {
@@ -159,7 +163,7 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 				stream->buf_size - stream->buf_data);
 			if (ret == 0) {
 				stream->error = SO_EOF;
-				return 0;
+				return read_nmemb;
 			}
 			stream->buf_data += ret;
 			if (bytes > stream->buf_data) {
@@ -190,6 +194,8 @@ int so_fputc(int c, SO_FILE *stream)
 	int  ret = 0;
 
 	if (stream) {
+		stream->last_op = WRITE_OP;
+		stream->file_pos++;
 		*(stream->curr_ptr) = buffer;
 		stream->curr_ptr++;
 		stream->buf_data++;
@@ -210,10 +216,12 @@ int so_fputc(int c, SO_FILE *stream)
 /* TODO Intercalat */
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
-	int ret = 0, space_left = 0;
+	size_t space_left = 0, write_nmemb = 0, ret;
 	size_t bytes = size * nmemb;
-	size_t write_nmemb = 0;
+
 	if (stream) {
+		stream->last_op = WRITE_OP;
+		stream->file_pos += bytes;
 		if (stream->buf_data == 0) {
 			stream->curr_ptr = stream->buffer;
 		}
@@ -246,6 +254,7 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 						stream->buf_data - ret);
 				stream->buf_data = 0;
 				stream->curr_ptr = stream->buffer;
+				stream->file_pos += ret;
 			} else {				
 				stream->buf_data -= ret;
 				stream->curr_ptr -= ret;
@@ -281,11 +290,13 @@ int so_fflush(SO_FILE *stream)
 			stream->error = SO_EOF;
 			return 0;
 		}
+		stream->file_pos += ret;
 		if (ret < stream->buf_data) {
 			ret = loop_write(stream->fd, stream->buffer + ret,
 					stream->buf_data - ret);
 			stream->buf_data = 0;
 			stream->curr_ptr = stream->buffer;
+			stream->file_pos += ret;
 		} else {
 			stream->curr_ptr -= ret;
 			stream->buf_data -= ret;
@@ -298,37 +309,69 @@ int so_fflush(SO_FILE *stream)
 /* TODO */
 int so_fseek(SO_FILE *stream, long offset, int whence)
 {
-	return 0;
+	long ret = 0;
+
+	if (stream) {
+		if (whence != SEEK_CUR && whence != SEEK_END &&
+			whence != SEEK_SET)
+			return -1;
+		if (stream->last_op == READ_OP) {
+			stream->buf_data = 0;
+			stream->curr_ptr = stream->buffer;
+		}
+		if (stream->last_op == WRITE_OP) {
+			so_fflush(stream); /* TODO */
+		}
+		stream->last_op = NO_OP;
+		ret = lseek(stream->fd, offset, whence);
+		if (ret < 0) {
+			return -1;
+		}
+		stream->file_pos = ret;
+		return 0;
+	}
+	return -1;
 }
 
 /* TODO */
 long so_ftell(SO_FILE *stream)
 {
-	return 0;
+	if (stream) {
+		return stream->file_pos;
+	}
+	return -1;
 }
 
 /* TODO */
 SO_FILE *so_popen(const char *command, const char *type)
 {
+	if (command && type) {
+		return NULL;
+	}
 	return NULL;
 }
 
 /* TODO */
 int so_pclose(SO_FILE *stream)
 {
-	return NULL;
+	if (stream) {
+		return 0;
+	}
+	return SO_EOF;
 }
 
 int so_feof(SO_FILE *stream)
 {
-	char buffer = -1, ret = 0;
+	size_t size, curr_size;
 
 	if (stream) {
-		ret = read(stream->fd, &buffer, 1);
-		if (ret < 1) {
+		curr_size = lseek(stream->fd, 0, SEEK_CUR);
+		size = lseek(stream->fd, 0, SEEK_END);
+		if (size < stream->file_pos) {
 			return SO_EOF;
 		}
-		return lseek(stream->fd, -1, SEEK_CUR);
+		lseek(stream->fd, curr_size, SEEK_SET);
+		return 0;
 	}
 	return SO_EOF;
 }
