@@ -532,20 +532,6 @@ int so_pclose(SO_FILE *stream)
 	return -1;
 }
 
-/* Small loop read implementation to guarantee data has been read */
-size_t loop_read(int fd, void *buf, size_t count)
-{
-	size_t ret = 1, totalRead = 0;
-
-	while (ret > 0 && count > 0) {
-		ret = read(fd, buf, count);
-		buf += ret;
-		count -= ret;
-		totalRead += ret;
-	}
-	return (ret == 0) ? -totalRead : totalRead;
-}
-
 /* Small loop write implementation to guarantee data has been written */
 size_t loop_write(int fd, void *buf, size_t count)
 {
