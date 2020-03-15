@@ -1,6 +1,4 @@
-#include "./util/so_stdio.h"
-
-#include <stdio.h>
+#include "./so_internal_stdio.h"
 
 SO_FILE *so_fopen(const char *pathname, const char *mode)
 {
@@ -105,7 +103,6 @@ int so_fileno(SO_FILE *stream)
 	return stream ? stream->fd : SO_EOF;
 }
 
-/* TODO Intercalat caz cu RW */
 int so_fgetc(SO_FILE *stream)
 {
 	int ret = 0;
@@ -132,7 +129,6 @@ int so_fgetc(SO_FILE *stream)
 	return SO_EOF;
 }
 
-/* TODO Intercalat caz cu RW*/
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
 	int ret = 0;
@@ -193,7 +189,6 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 	return SO_EOF;
 }
 
-/* TODO Intercalat */
 int so_fputc(int c, SO_FILE *stream)
 {
 	char buffer = c;
@@ -219,7 +214,6 @@ int so_fputc(int c, SO_FILE *stream)
 	return SO_EOF;
 }
 
-/* TODO Intercalat */
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
 	ssize_t space_left = 0, write_nmemb = 0, ret;
@@ -312,7 +306,6 @@ int so_fflush(SO_FILE *stream)
 	return SO_EOF;
 }
 
-/* TODO */
 int so_fseek(SO_FILE *stream, long offset, int whence)
 {
 	long ret = 0;
@@ -339,31 +332,12 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 	return -1;
 }
 
-/* TODO */
 long so_ftell(SO_FILE *stream)
 {
 	if (stream) {
 		return stream->file_pos;
 	}
 	return -1;
-}
-
-/* TODO */
-SO_FILE *so_popen(const char *command, const char *type)
-{
-	if (command && type) {
-		return NULL;
-	}
-	return NULL;
-}
-
-/* TODO */
-int so_pclose(SO_FILE *stream)
-{
-	if (stream) {
-		return 0;
-	}
-	return SO_EOF;
 }
 
 int so_feof(SO_FILE *stream)
@@ -385,6 +359,22 @@ int so_feof(SO_FILE *stream)
 int so_ferror(SO_FILE *stream)
 {
 	return stream ? stream->error : SO_EOF;
+}
+
+SO_FILE *so_popen(const char *command, const char *type)
+{
+	if (command && type) {
+		return NULL;
+	}
+	return NULL;
+}
+
+int so_pclose(SO_FILE *stream)
+{
+	if (stream) {
+		return 0;
+	}
+	return SO_EOF;
 }
 
 size_t loop_read(int fd, void *buf, size_t count)

@@ -9,8 +9,6 @@
 
 #if defined(__linux__)
 #define FUNC_DECL_PREFIX
-#include <unistd.h>
-#include <fcntl.h>
 #elif defined(_WIN32)
 #include <Windows.h>
 
@@ -25,30 +23,14 @@
 #endif
 
 #include <stdlib.h>
-#include <string.h> /* memcpy */
 
 #define SEEK_SET	0	/* Seek from beginning of file.  */
 #define SEEK_CUR	1	/* Seek from current position.  */
 #define SEEK_END	2	/* Seek from end of file.  */
 
-#define NO_OP    0
-#define WRITE_OP 1
-#define READ_OP  2
-
 #define SO_EOF (-1)
 
-struct _so_file {
-	unsigned short buf_size;
-	unsigned char  wait;
-	unsigned char  error;
-	unsigned int   file_pos;
-	unsigned int   flags;
-	unsigned short buf_data;
-	unsigned char  last_op;
-	unsigned char *curr_ptr;
-	unsigned char *buffer;
-	int fd;
-};
+struct _so_file;
 
 typedef struct _so_file SO_FILE;
 
@@ -84,9 +66,4 @@ FUNC_DECL_PREFIX int so_ferror(SO_FILE *stream);
 FUNC_DECL_PREFIX SO_FILE *so_popen(const char *command, const char *type);
 FUNC_DECL_PREFIX int so_pclose(SO_FILE *stream);
 
-/* Utility function to guarantee count was read in buf from fd */
-FUNC_DECL_PREFIX size_t loop_read(int fd, void *buf, size_t count);
-
-/* Utility function to guarantee count was written in buf from fd */
-FUNC_DECL_PREFIX size_t loop_write(int fd, void *buf, size_t count);
 #endif /* SO_STDIO_H */
