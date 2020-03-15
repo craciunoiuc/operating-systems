@@ -240,8 +240,16 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 				stream->error = SO_EOF;
 				return 0;
 			}
-			stream->buf_data -= ret;
-			stream->curr_ptr -= ret;
+			if (ret < stream->buf_data) {
+				ret = loop_write(stream->fd,
+						stream->buffer + ret,
+						stream->buf_data - ret);
+				stream->buf_data = 0;
+				stream->curr_ptr = stream->buffer;
+			} else {				
+				stream->buf_data -= ret;
+				stream->curr_ptr -= ret;
+			}
 			space_left = stream->buf_size - stream->buf_data;
 			if (space_left >= bytes) {
 				memcpy(stream->curr_ptr, ptr, bytes);
@@ -270,12 +278,18 @@ int so_fflush(SO_FILE *stream)
 	if (stream) {
 		ret = write(stream->fd, stream->buffer, stream->buf_data);
 		if (ret == 0) {
-			puts("ERROR");
 			stream->error = SO_EOF;
 			return 0;
 		}
-		stream->curr_ptr -= ret;
-		stream->buf_data -= ret;
+		if (ret < stream->buf_data) {
+			ret = loop_write(stream->fd, stream->buffer + ret,
+					stream->buf_data - ret);
+			stream->buf_data = 0;
+			stream->curr_ptr = stream->buffer;
+		} else {
+			stream->curr_ptr -= ret;
+			stream->buf_data -= ret;
+		}
 		return 0;
 	}
 	return SO_EOF;
@@ -324,7 +338,7 @@ int so_ferror(SO_FILE *stream)
 	return stream ? stream->error : SO_EOF;
 }
 
-char loop_read(int fd, void *buf, size_t count)
+size_t loop_read(int fd, void *buf, size_t count)
 {
 	size_t ret = 1, totalRead = 0;
 
@@ -337,7 +351,7 @@ char loop_read(int fd, void *buf, size_t count)
 	return (ret == 0) ? -totalRead : totalRead;
 }
 
-char loop_write(int fd, void *buf, size_t count)
+size_t loop_write(int fd, void *buf, size_t count)
 {
 	size_t ret = 1, totalWritten = 0;
 
