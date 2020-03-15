@@ -6,8 +6,9 @@
 
 #if defined(__linux__)
 #define FUNC_DECL_PREFIX
-#include <fcntl.h> /* Open flags */
-#include <unistd.h> /* File I/O */
+#include <fcntl.h>    /* Open flags */
+#include <unistd.h>   /* File I/O */
+#include <sys/wait.h> /* waitpid */
 #elif defined(_WIN32)
 #include <Windows.h>
 
@@ -21,7 +22,7 @@
 #error "Unknown platform"
 #endif
 
-#include <string.h> /* memcpy */
+#include <string.h> /* memcpy, strcpy, strlen, strtok */
 
 #define NO_OP    0
 #define WRITE_OP 1
@@ -29,12 +30,12 @@
 
 struct _so_file {
 	unsigned short buf_size;
-	unsigned char  wait;
+	unsigned short buf_data;
+	unsigned short wait;
 	unsigned char  error;
+	unsigned char  last_op;
 	unsigned int   file_pos;
 	unsigned int   flags;
-	unsigned short buf_data;
-	unsigned char  last_op;
 	unsigned char *curr_ptr;
 	unsigned char *buffer;
 	int fd;
