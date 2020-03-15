@@ -5,10 +5,10 @@ Grupă: 334CA
 
 Organizare
 -
-Enuntul temei a fost destul de strict, trebuind doar sa se implementeze
-functiile din header-ul dat. Totusi, a ramas la propria implementare formatul
-structurii. S-a urmat modelul oficial de implementare a structurii FILE si
-s-au implementat pe rand functionalitatile din tema.
+* Enuntul temei a fost destul de strict, trebuind doar sa se implementeze
+* functiile din header-ul dat. Totusi, a ramas la propria implementare formatul
+* structurii. S-a urmat modelul oficial de implementare a structurii FILE si
+* s-au implementat pe rand functionalitatile din tema.
 
 ***Obligatoriu:*** 
 * Mai intai s-a creat o structura de baza FILE, la care s-au adaugat, pe rand,
