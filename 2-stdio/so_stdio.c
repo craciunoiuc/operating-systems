@@ -1,5 +1,6 @@
 #include "./so_internal_stdio.h"
 
+/* Initialises the SO_FILE structure and opens the file in the required mode */
 SO_FILE *so_fopen(const char *pathname, const char *mode)
 {
 	SO_FILE *file_ptr = malloc(sizeof(SO_FILE));
@@ -73,6 +74,7 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
 	return file_ptr;
 }
 
+/* Closes the file and frees data from the stream after flushing it */
 int so_fclose(SO_FILE *stream)
 {
 	int ret = 0;
@@ -96,11 +98,13 @@ int so_fclose(SO_FILE *stream)
 	return SO_EOF;
 }
 
+/* Returns the file descriptor in the stream */
 int so_fileno(SO_FILE *stream)
 {
 	return stream ? stream->fd : SO_EOF;
 }
 
+/* Buffers data from the file into the stream and returns one character */
 int so_fgetc(SO_FILE *stream)
 {
 	int ret = 0;
@@ -127,6 +131,9 @@ int so_fgetc(SO_FILE *stream)
 	return SO_EOF;
 }
 
+/* Copies chunks of memory from the buffer into ptr, and, if needed, gets
+ * more information from the file into the buffer.
+ */
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
 	int ret = 0;
@@ -186,6 +193,9 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 	return SO_EOF;
 }
 
+/* Copies on character into the buffer and writes it if \n was found or
+ * the buffer is full.
+ */
 int so_fputc(int c, SO_FILE *stream)
 {
 	char buffer = c;
@@ -212,6 +222,9 @@ int so_fputc(int c, SO_FILE *stream)
 	return SO_EOF;
 }
 
+/* Writes chunks of data in the buffer and copies it into the file if
+ * the buffer filled up
+ */
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
 	ssize_t space_left = 0, write_nmemb = 0, ret;
@@ -277,6 +290,7 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 	return SO_EOF;
 }
 
+/* Writes all data from the buffer into the file */
 int so_fflush(SO_FILE *stream)
 {
 	ssize_t ret;
@@ -303,6 +317,7 @@ int so_fflush(SO_FILE *stream)
 	return SO_EOF;
 }
 
+/* Clears the buffer and moves the cursor to the wanted position*/
 int so_fseek(SO_FILE *stream, long offset, int whence)
 {
 	long ret = 0;
@@ -327,6 +342,7 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 	return -1;
 }
 
+/* Returns the position in the file */
 long so_ftell(SO_FILE *stream)
 {
 	if (stream)
@@ -334,6 +350,7 @@ long so_ftell(SO_FILE *stream)
 	return -1;
 }
 
+/* Checks if the current position is equal to the last position in the file */
 int so_feof(SO_FILE *stream)
 {
 	ssize_t size, curr_size;
@@ -349,11 +366,13 @@ int so_feof(SO_FILE *stream)
 	return SO_EOF;
 }
 
+/* Returns an error if an error has happened sometime in execution */
 int so_ferror(SO_FILE *stream)
 {
 	return stream ? stream->error : SO_EOF;
 }
 
+/* Creates a pipe and forks the process executing a shell script to read from */
 SO_FILE *read_pipe(const int pipe_read, const int pipe_write,
 		const char *shell, int *ret, pid_t *pid, int *fds,
 		const char **argvs, SO_FILE *stream)
@@ -415,6 +434,7 @@ SO_FILE *read_pipe(const int pipe_read, const int pipe_write,
 	}
 }
 
+/* Creates a pipe and forks the process executing a shell script to write to */
 SO_FILE *write_pipe(const int pipe_read, const int pipe_write,
 		const char *shell, int *ret, pid_t *pid, int *fds,
 		const char **argvs, SO_FILE *stream)
@@ -470,6 +490,7 @@ SO_FILE *write_pipe(const int pipe_read, const int pipe_write,
 	}
 }
 
+/* Combines popen for both reading and writing (not at the same time) */
 SO_FILE *so_popen(const char *command, const char *type)
 {
 	pid_t pid;
@@ -493,6 +514,7 @@ SO_FILE *so_popen(const char *command, const char *type)
 	return NULL;
 }
 
+/* Waits for the child process to finish and closes the stream */
 int so_pclose(SO_FILE *stream)
 {
 	int ret, status, close_ret;
@@ -510,6 +532,7 @@ int so_pclose(SO_FILE *stream)
 	return -1;
 }
 
+/* Small loop read implementation to guarantee data has been read */
 size_t loop_read(int fd, void *buf, size_t count)
 {
 	size_t ret = 1, totalRead = 0;
@@ -523,6 +546,7 @@ size_t loop_read(int fd, void *buf, size_t count)
 	return (ret == 0) ? -totalRead : totalRead;
 }
 
+/* Small loop write implementation to guarantee data has been written */
 size_t loop_write(int fd, void *buf, size_t count)
 {
 	size_t ret = 1, totalWritten = 0;

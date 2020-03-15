@@ -41,9 +41,6 @@ struct _so_file {
 	int fd;
 };
 
-/* Utility function to guarantee count was read in buf from fd */
-FUNC_DECL_PREFIX size_t loop_read(int fd, void *buf, size_t count);
-
 /* Utility function to guarantee count was written in buf from fd */
 FUNC_DECL_PREFIX size_t loop_write(int fd, void *buf, size_t count);
 #endif /* SO_INTERNAL_STDIO_H */
