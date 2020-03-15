@@ -331,7 +331,9 @@ int so_fseek(SO_FILE *stream, long offset, int whence)
 			stream->curr_ptr = stream->buffer;
 		}
 		if (stream->last_op == WRITE_OP)
-			so_fflush(stream);
+			ret = so_fflush(stream);
+		if (ret < 0)
+			return -1;
 		stream->last_op = NO_OP;
 		ret = lseek(stream->fd, offset, whence);
 		if (ret < 0)
@@ -353,14 +355,16 @@ long so_ftell(SO_FILE *stream)
 /* Checks if the current position is equal to the last position in the file */
 int so_feof(SO_FILE *stream)
 {
-	ssize_t size, curr_size;
+	ssize_t size, curr_size, ret;
 
 	if (stream) {
 		curr_size = lseek(stream->fd, 0, SEEK_CUR);
 		size = lseek(stream->fd, 0, SEEK_END);
-		if (size < stream->file_pos)
+		if (curr_size < 0 || size < 0 || size < stream->file_pos)
 			return SO_EOF;
-		lseek(stream->fd, curr_size, SEEK_SET);
+		ret = lseek(stream->fd, curr_size, SEEK_SET);
+		if (ret < 0)
+			return SO_EOF;
 		return 0;
 	}
 	return SO_EOF;
@@ -402,6 +406,7 @@ SO_FILE *read_pipe(const int pipe_read, const int pipe_write,
 			*ret = close(fds[pipe_write]);
 			if (*ret < 0)
 				return NULL;
+
 			execvp(shell, (char * const *) argvs);
 			exit(-1);
 		}
@@ -411,6 +416,7 @@ SO_FILE *read_pipe(const int pipe_read, const int pipe_write,
 			*ret = close(fds[pipe_write]);
 			if (*ret < 0)
 				return NULL;
+
 			stream = malloc(sizeof(SO_FILE));
 			if (!stream)
 				exit(12);
@@ -460,6 +466,7 @@ SO_FILE *write_pipe(const int pipe_read, const int pipe_write,
 			*ret = dup2(fds[pipe_read], STDIN_FILENO);
 			if (*ret < 0)
 				return NULL;
+
 			execvp(shell, (char * const *)argvs);
 			exit(-1);
 		}
@@ -467,6 +474,8 @@ SO_FILE *write_pipe(const int pipe_read, const int pipe_write,
 		default: {
 			/* Parent */
 			*ret = close(fds[pipe_read]);
+			if (*ret < 0)
+				return NULL;
 			stream = malloc(sizeof(SO_FILE));
 			if (!stream)
 				exit(12);
@@ -539,6 +548,8 @@ size_t loop_write(int fd, void *buf, size_t count)
 
 	while (ret > 0 && count > 0) {
 		ret = write(fd, buf, count);
+		if (ret < 0)
+			return 0;
 		buf += ret;
 		count -= ret;
 		totalWritten += ret;

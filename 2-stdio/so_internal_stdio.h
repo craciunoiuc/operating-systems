@@ -22,7 +22,7 @@
 #error "Unknown platform"
 #endif
 
-#include <string.h> /* memcpy, strcpy, strlen, strtok */
+#include <string.h> /* memcpy */
 
 #define NO_OP    0
 #define WRITE_OP 1
@@ -40,6 +40,16 @@ struct _so_file {
 	unsigned char *buffer;
 	int fd;
 };
+
+/* Creates a pipe and forks the process executing a shell script to read from */
+FUNC_DECL_PREFIX SO_FILE *read_pipe(const int pipe_read, const int pipe_write,
+			const char *shell, int *ret, pid_t *pid, int *fds,
+			const char **argvs, SO_FILE *stream);
+
+/* Creates a pipe and forks the process executing a shell script to write to */
+FUNC_DECL_PREFIX SO_FILE *write_pipe(const int pipe_read, const int pipe_write,
+			const char *shell, int *ret, pid_t *pid, int *fds,
+			const char **argvs, SO_FILE *stream);
 
 /* Utility function to guarantee count was written in buf from fd */
 FUNC_DECL_PREFIX size_t loop_write(int fd, void *buf, size_t count);
