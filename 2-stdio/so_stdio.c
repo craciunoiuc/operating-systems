@@ -464,7 +464,7 @@ SO_FILE *write_pipe(const int pipe_read, const int pipe_write,
 				return NULL;
 
 			*ret = dup2(fds[pipe_read], STDIN_FILENO);
-			if (*ret < 0)
+			if (*ret >= 0)
 				return NULL;
 
 			execvp(shell, (char * const *)argvs);
@@ -506,7 +506,7 @@ SO_FILE *so_popen(const char *command, const char *type)
 	int fds[2], ret;
 	const int pipe_read = 0;
 	const int pipe_write = 1;
-	const char *argvs[] = {"sh", "-c", command, NULL};
+	const char *argvs[4] = {"sh", "-c", command, NULL};
 	const char *shell = "sh";
 	SO_FILE *stream = NULL;
 
@@ -544,7 +544,7 @@ int so_pclose(SO_FILE *stream)
 /* Small loop write implementation to guarantee data has been written */
 size_t loop_write(int fd, void *buf, size_t count)
 {
-	size_t ret = 1, totalWritten = 0;
+	ssize_t ret = 1, totalWritten = 0;
 
 	while (ret > 0 && count > 0) {
 		ret = write(fd, buf, count);
