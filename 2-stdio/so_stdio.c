@@ -79,13 +79,15 @@ SO_FILE *so_fopen(const char *pathname, const char *mode)
 int so_fclose(SO_FILE *stream)
 {
 	int ret = 0;
+	char fail = 0;
 
 	if (stream) {
-		if (stream->buffer && stream->fd) {
+		if (stream->buffer && stream->fd &&
+			stream->last_op == WRITE_OP) {
 			ret = so_fflush(stream);
-			if (ret == SO_EOF) {
+			if (ret < 0) {
 				stream->error = SO_EOF;
-				return SO_EOF;
+				fail = 1;
 			}
 		}
 		ret = close(stream->fd);
@@ -93,7 +95,7 @@ int so_fclose(SO_FILE *stream)
 			free(stream->buffer);
 		}
 		free(stream);
-		return ret;
+		return fail ? SO_EOF : ret;
 	}
 	return SO_EOF;
 }
@@ -165,6 +167,10 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 				stream->error = SO_EOF;
 				return read_nmemb;
 			}
+			if (ret < 0) {
+				stream->error = SO_EOF;
+				return 0;
+			}
 			stream->buf_data += ret;
 			if (bytes > stream->buf_data) {
 				memcpy(ptr, stream->curr_ptr, stream->buf_data);
@@ -216,8 +222,8 @@ int so_fputc(int c, SO_FILE *stream)
 /* TODO Intercalat */
 size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 {
-	size_t space_left = 0, write_nmemb = 0, ret;
-	size_t bytes = size * nmemb;
+	ssize_t space_left = 0, write_nmemb = 0, ret;
+	ssize_t bytes = size * nmemb;
 
 	if (stream) {
 		stream->last_op = WRITE_OP;
@@ -244,7 +250,7 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 		while (bytes > 0) {
 			ret = write(stream->fd,
 				stream->buffer, stream->buf_data);
-			if (ret == 0) {
+			if (ret <= 0) {
 				stream->error = SO_EOF;
 				return 0;
 			}
@@ -282,13 +288,13 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream)
 
 int so_fflush(SO_FILE *stream)
 {
-	size_t ret;
+	ssize_t ret;
 
 	if (stream) {
 		ret = write(stream->fd, stream->buffer, stream->buf_data);
-		if (ret == 0) {
+		if (ret <= 0) {
 			stream->error = SO_EOF;
-			return 0;
+			return ret;
 		}
 		stream->file_pos += ret;
 		if (ret < stream->buf_data) {
