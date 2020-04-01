@@ -28,6 +28,11 @@
 2-stdio/*.so
 2-stdio/*.dll
 
+# VScode-server
+.vscode-server/*
+.*
+.ssh/
+
 # Executables
 *.out
 *.app
