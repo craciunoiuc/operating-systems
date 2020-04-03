@@ -32,7 +32,7 @@ static struct sigaction old_action;
 static char *program_memory;
 static char *file_data;
 static int fd;
-static char allocated = 1;
+static const char allocated = 1;
 
 static void loop_read(int fd, char *buffer, unsigned int offset, int nr_to_read) {
 	int real_read = 0;
@@ -45,16 +45,12 @@ static void loop_read(int fd, char *buffer, unsigned int offset, int nr_to_read)
 
 static void segv_handler(int signum, siginfo_t *info, void *context) {
 	int pageno, i, segmno;
-
+	int pages_crt, first_page, last_page;
 	if (info->si_signo != SIGSEGV) {
 		old_action.sa_sigaction(signum, info, context);
 		return;
 	}
-	pageno = ((char *)info->si_addr - (char *)exec->base_addr) / pageSize;
 
-	printf("maxno=%d pageno=%d mem=%p prg=%p diff=%d\n", exec->segments_no,
-			pageno, info->si_addr, program_memory,
-			((char *)info->si_addr) - program_memory);
 
 	// TODO INLOCUIT 0 LA SEGMENTE (Aliniat in ambele directii?)
 
@@ -77,46 +73,65 @@ static void segv_handler(int signum, siginfo_t *info, void *context) {
 			exec->segments[exec->segments_no - 1].mem_size) {
 		segmno = exec->segments_no - 1;
 	}
-	printf("ALO=%d\n", exec->segments_no);
 	// Segment not found - invalid access outside program
 	if (segmno == -1) {
 		old_action.sa_sigaction(signum, info, context);
 		return;
 	}
-
+	//puts("SEGMENT FOUND");
 	// Segment already mapped - invalid access outside segment
-	if (exec->segments[segmno].data == &allocated) {
+	// pageno <- a cata pagina din program
+	pageno = ((char *)info->si_addr - (char *)exec->base_addr) / pageSize;
+	first_page = (exec->segments[segmno].vaddr - exec->base_addr) / pageSize;
+	last_page = (ALIGN_UP(exec->segments[segmno].mem_size +
+			exec->segments[segmno].vaddr, pageSize) -
+			exec->base_addr) / pageSize;
+	pages_crt = pageno - first_page;
+	//printf("pageno=%d first=%d last=%d crt=%d\n", pageno, first_page, last_page, pages_crt);
+	if (exec->segments[segmno].data != NULL &&
+		((char *)exec->segments[segmno].data)[pages_crt] == allocated) {
 		old_action.sa_sigaction(signum, info, context);
 		return;
 	} else {
-		exec->segments[segmno].data = &allocated;
+		//puts("Not allocated");
+		if (exec->segments[segmno].data == NULL) {
+			//puts("First time in this segment");
+			exec->segments[segmno].data = calloc(sizeof(char),
+			last_page - first_page + 1);
+		}
+		//puts("Marking as allocated");
+		((char *)exec->segments[segmno].data)[pages_crt] = allocated;
 	}
 	//puts("ALO");
 
-	// Read from file
+	//printf("maxno=%d pageno=%d mem=%p prg=%p diff=%d\n", exec->segments_no,
+	//	pageno, info->si_addr, program_memory,
+	//	((char *)info->si_addr) - program_memory);
+
+
+	// Read from file - 1 segment
 	loop_read(fd, file_data, exec->segments[segmno].offset,
 		exec->segments[segmno].file_size);
 	
 	// Map the memory for the file to access
-	program_memory = mmap((char *) exec->segments[segmno].vaddr,
-				ALIGN_UP(exec->segments[segmno].mem_size, pageSize),
+	program_memory = mmap((char *) exec->segments[segmno].vaddr + pages_crt * pageSize,
+				pageSize,
 				PROT_WRITE,
 				MAP_ANONYMOUS | MAP_SHARED | MAP_FIXED, -1, 0);
 	//puts("ALO");
 
 	// Write 0 on the pages
-	memset(program_memory, 0, ALIGN_UP(exec->segments[segmno].mem_size, pageSize));
+	memset(program_memory, 0, pageSize);
 	
-	// Copy the data from the file
-	memcpy(program_memory, file_data, exec->segments[segmno].file_size);
+	// Copy the data from the file - TODO
+	memcpy(program_memory, file_data + pages_crt * pageSize,
+		(exec->segments[segmno].file_size > pageSize) ? pageSize : exec->segments[segmno].file_size);
 	
 	// Ensure that the data has been written
-	msync(program_memory, ALIGN_UP(exec->segments[segmno].mem_size, pageSize),
-		MS_SYNC);
+	msync(program_memory, pageSize, MS_SYNC);
 	
 	// Change to the desired permisions
-	mprotect(program_memory, ALIGN_UP(exec->segments[segmno].mem_size, pageSize), 
-		exec->segments[segmno].perm);
+	mprotect(program_memory, pageSize, exec->segments[segmno].perm);
 
 	//old_action.sa_sigaction(signum, info, context);
 }
