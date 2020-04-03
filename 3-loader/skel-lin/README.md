@@ -1,57 +1,61 @@
-# Skeleton for building a ELF loader
+Nume: Craciunoiu Cezar
+Grupa: 334CA
 
-## Introduction
-This project contains a skeleton for building an
-[ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format) binary
-on-demand loader in Linux. The loader will provide two methods, defined in the
-`loader.h` header:
-* `int so_init_loader(void);` - initializes the on-demand loader
-* `int so_execute(char *path, char *argv[]);` - executes the binary located in
-`path` with the required `argv` arguments.
+# Tema 3 - Loader
 
-## Content
-The project contains of three components, each of them in its own
-directory:
-* `loader` - a dynamic library that can be used to run ELF binaries. It
-consists of the following files:
-  * `exec_parser.c` - Implements an ELF binary parser.
-  * `exec_parser.h` - The header exposed by the ELF parser.
-  * `loader.h` - The interface of the loader, described in the
-  [Introduction](#introduction) section.
-  * `loader.c` - This is where the loader should be implemented.
-  * `debug.h` - header for the `dprintf` function that can be used for logging
-  and debugging.
-* `exec` - a program that uses the `libso_loader.so` library to run an ELF
-binary received as argument.
-* `test_prog` - an ELF binary used to test the loader implementation.
+Organizare
+-
+* Scheletul temei a fost destul de strict, trebuind doar sa se implementeze
+* in fisierul loader.c dat. Totusi, a ramas la propria implementare continutul
+* functiei de gestionare al segmentation fault-ului.
+* S-a utilizat fisierul de parse-are al executabilului de tip ELF si
+* s-a construit un mod de citire a informatiei per segment si scriere
+* in fiecare pagina necesara.
 
-There project also contains 2 makefiles:
-* `Makefile` - builds the `libso_loader.so` library from the `loader`
-directory
-* `Makefile.example` - builds the `so_exec` and `so_test_prog` binaries from
-the `exec` and `test_prog` directories that can be used to test the loader.
+***Obligatoriu:*** 
+* Structura generala a programului este destul de simpla. Mai intai se
+* realizeaza parse-area, folosind functia oferita. Functia de seteaza
+* intreruperi marcheaza intreruperea SIGSEGV ca cea care se va gestiona.
+* Restul implementarii se afla in functia de gestionare al acestui semnal, in
+* care se foloseste si o functie aditionala de citire din fisier.
+* Consider ca tema, desi a avut un enunt destul de vag la prima vedere, este
+* una care face legatura intr-un mod elegant intre curs si laborator. Cu alte
+* cuvinte, ajuta studentii sa inteleaga cum sa gestioneze memoria, dar si
+* sa inteleaga formatul ELF.
+* Implementarea este destul de simpla. Pentru fiecare acces la memorie verifica
+* daca accesta este ilegal sau trebuie sa se mapeze acea zona de memorie.
+* Din pacate, implementarea duce la esuarea ultimului test, deoarece se ajunge,
+* intr-un mod nedeterminat, cu mult, in afara zonei programului.
 
-## Usage Build the loader:
-```
-make
-```
+Implementare
+-
 
-This should generate the `libso_loader.so` library. Next, build the example:
+* S-a incercat o implementare completa, dar, din pacate, la un numar foarte
+* mare de page-fault-uri, se ajunge la un comportament nedeterminat, care duce
+* programul intr-un Segmentation Fault normal.
+* Functionalitate lipsa: loading cu multe page fault-uri -> testele reflecta
+* Mi s-a parut interesant faptul ca nu exista magie "in spate" (si programul
+* care porneste programe e un program ca toate programele)
 
-```
-make -f Makefile.example
-```
+Cum se compilează și cum se rulează?
+-
+* Build-ul este acoperit de makefile (care a fost si oferit de echipa).
+* Acesta creeaza o biblioteca partajata care este folosita de checker pentru
+* a incarca si rula diferite surse.
+* Pentru a se verifica trebuie ca biblioteca partajata sa se afle in folder-ul
+* numit "checker-lin" ce a fost oferit.
+Bibliografie
+-
 
-This should generate the `so_exec` and `so_test_prog` used for the test:
+* https://linux.die.net/
+* Laboratoarele 4-5-6 (de pe ocw)
 
-```
-LD_LIBRARY_PATH=. ./so_exec so_test_prog
-```
+Git
+-
+1. https://gitlab.cs.pub.ro/cezar.craciunoiu/l3-so-assignments/tree/master/3-loader
+2. https://gitlab.cs.pub.ro/cezar.craciunoiu/l3-so-assignments.git
 
-**NOTE:** the skeleton does not have the loader implemented, thus when running
-the command above, your program will crash!
-
-## Notes
-This skeleton is provided by the Operating System team from the University
-Politehnica of Bucharest to their students to help them complete their
-Executable Loader assignment.
+Mentiuni
+* Au fost folosite bullet-uri la fiecare linie pentru a se garanta pe gitlab
+* ca se pastreaza liniile de 80 de caractere din README intr-un mod
+* relativ elegant.

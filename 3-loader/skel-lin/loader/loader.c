@@ -1,7 +1,7 @@
 /*
  * Loader Implementation
- *
- * 2018, Operating Systems
+ * Craciunoiu Cezar 334CA
+ * 2020, Operating Systems
  */
 
 /* Defines to remove Visual Studio Code errors */
