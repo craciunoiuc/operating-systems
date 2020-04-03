@@ -73,13 +73,13 @@ static void segv_handler(int signumber, siginfo_t *info, void *context)
 	/* Find the coresponding segment */
 	segmno = -1;
 	for (i = 0; i < last_seg; ++i) {
-		if ((uintptr_t )info->si_addr >= exec->segments[i].vaddr &&
+		if ((uintptr_t)info->si_addr >= exec->segments[i].vaddr &&
 		(uintptr_t)info->si_addr < exec->segments[i + 1].vaddr) {
 			segmno = i;
 			break;
 		}
 	}
-	
+
 	/* Segment not found or it's the last segment */
 	if (segmno == -1 &&
 	(uintptr_t)info->si_addr >= exec->segments[last_seg].vaddr &&
@@ -95,7 +95,8 @@ static void segv_handler(int signumber, siginfo_t *info, void *context)
 	}
 
 	pageno = ((char *)info->si_addr - (char *)exec->base_addr) / page_size;
-	first_page = (exec->segments[segmno].vaddr - exec->base_addr) / page_size;
+	first_page = (exec->segments[segmno].vaddr -
+			exec->base_addr) / page_size;
 	last_page = (ALIGN_UP(exec->segments[segmno].mem_size +
 			exec->segments[segmno].vaddr, page_size) -
 			exec->base_addr) / page_size;
@@ -106,20 +107,19 @@ static void segv_handler(int signumber, siginfo_t *info, void *context)
 		((char *)exec->segments[segmno].data)[pages_crt] == ALLOCATED) {
 		old_action.sa_sigaction(signumber, info, context);
 		return;
-	} else {
-		if (exec->segments[segmno].data == NULL) {
-			exec->segments[segmno].data = calloc(sizeof(char),
-			last_page - first_page + 1);
-		}
-		((char *)exec->segments[segmno].data)[pages_crt] = ALLOCATED;
 	}
+	if (exec->segments[segmno].data == NULL) {
+		exec->segments[segmno].data = calloc(sizeof(char),
+		last_page - first_page + 1);
+	}
+	((char *)exec->segments[segmno].data)[pages_crt] = ALLOCATED;
 
 	/* Read 1 segment from the file if it's a new one */
 	if (previous_segmno != segmno) {
 		loop_read(fd, file_data, exec->segments[segmno].offset,
 			exec->segments[segmno].file_size);
 	}
-	
+
 	/* Map the memory for the file to access */
 	program_memory = mmap((char *) exec->segments[segmno].vaddr +
 				pages_crt * page_size, page_size, PROT_WRITE,
@@ -128,12 +128,12 @@ static void segv_handler(int signumber, siginfo_t *info, void *context)
 
 	/* Write 0 on the allocated page */
 	memset(program_memory, 0, page_size);
-	
+
 	/* Copy data from the file buffer to the program memory*/
 	memcpy(program_memory, file_data + pages_crt * page_size,
 		(exec->segments[segmno].file_size > page_size) ? page_size :
 			exec->segments[segmno].file_size);
-	
+
 	/* Ensure that the data has been written */
 	ret = msync(program_memory, page_size, MS_SYNC);
 	DIE(ret < 0, "msync failed");
@@ -141,7 +141,7 @@ static void segv_handler(int signumber, siginfo_t *info, void *context)
 	/* Change to the desired permisions */
 	ret = mprotect(program_memory, page_size, exec->segments[segmno].perm);
 	DIE(ret < 0, "mprotect failed");
-	
+
 	previous_segmno = segmno;
 }
 
@@ -171,16 +171,14 @@ int so_execute(char *path, char *argv[])
 	int i, max_mem_seg = 0;
 
 	exec = so_parse_exec(path);
-	if (!exec) {
+	if (!exec)
 		return -1;
-	}
 	fd = open(path, O_RDONLY);
 	DIE(fd < 0, "open failed");
 
 	for (i = 0; i < exec->segments_no; ++i) {
-		if (max_mem_seg < exec->segments[i].file_size) {
+		if (max_mem_seg < exec->segments[i].file_size)
 			max_mem_seg = exec->segments[i].file_size;
-		}
 	}
 	file_data = malloc(sizeof(char) * max_mem_seg);
 	DIE(file_data == NULL, "malloc failed");
