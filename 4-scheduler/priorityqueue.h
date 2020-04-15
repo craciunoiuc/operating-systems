@@ -17,8 +17,7 @@
         }                                                                       \
     }                                                                           \
 
-#define DEBUG(msg) fprintf(stderr, "%s:%d %s", __FILE__, __LINE__, (msg))
-
+#define DEBUG(msg)
 /**
 * Priority Queue Structure
 */

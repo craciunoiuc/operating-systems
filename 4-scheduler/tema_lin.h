@@ -1,25 +1,32 @@
 #ifndef _TEMA_LIN
 #define _TEMA_LIN
+
 #include <stdio.h>
+#include <stdlib.h>
 #include "./so_scheduler.h"
 #include "./priorityqueue.h"
 
-#define SO_MAX_THREADS 256
+#define SO_MAX_THREADS 8192
 
 typedef struct {
-    unsigned int priority;
-    unsigned int tid;
-    tid_t thread;
+	unsigned int priority;
+	so_handler *func;
+	tid_t thread;
 } tdata_t;
 
+static pthread_mutex_t mutex_core;
 static unsigned int io_devices = 0;
 static unsigned int time_to_check = 0;
 
 static PQueue *planner = NULL;
 
-int compare_threads(const tdata_t *thread1, const tdata_t *thread2)
+void *start_thread(void *params);
+
+int compare_threads(const void *thread1, const void *thread2)
 {
-    return thread1->priority - thread2->priority;
+	const tdata_t *elem1 = thread1;
+	const tdata_t *elem2 = thread2;
+	return elem2->priority - elem1->priority;
 }
 
 #endif /*_TEMA_LIN*/
