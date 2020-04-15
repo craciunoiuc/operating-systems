@@ -32,6 +32,10 @@
 .vscode-server/*
 .*
 .ssh/
+lab_threaduri/
+
+# Coding style
+checkpatch.pl
 
 # Executables
 *.out
