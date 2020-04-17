@@ -14,7 +14,6 @@ int so_init(unsigned int time_quantum, unsigned int io)
 tid_t so_fork(so_handler *func, unsigned int priority)
 {
 	tdata_t *thread;
-	tid_t ceva;
 	if (func == 0 || priority > SO_MAX_PRIO)
 		return INVALID_TID;
 	thread = malloc(sizeof(tdata_t));
@@ -23,6 +22,7 @@ tid_t so_fork(so_handler *func, unsigned int priority)
 	}
 	thread->func = func;
 	thread->priority = priority;
+	thread->remaining_instr = time_to_check;
 	if(pthread_create(&thread->thread, NULL, &start_thread, thread)) {
 		perror("Create");
 		exit(1);
@@ -34,27 +34,29 @@ tid_t so_fork(so_handler *func, unsigned int priority)
 void *start_thread(void *params)
 {
 	tdata_t *data = (tdata_t *)params;
-	
+
 	pthread_mutex_lock(&mutex_core);
 	(*data->func)(data->priority);
 	pthread_mutex_unlock(&mutex_core);
-
 	return NULL;
 }
 
 int so_wait(unsigned int io)
 {
+	if (io >= io_devices)
+		return -1;
 	return 0;
 }
 
 int so_signal(unsigned int io)
 {
+	if (io >= io_devices)
+		return -1;
 	return 0;
 }
 
 void so_exec()
 {
-
 }
 
 void so_end()

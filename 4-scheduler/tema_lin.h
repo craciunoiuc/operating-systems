@@ -10,6 +10,7 @@
 
 typedef struct {
 	unsigned int priority;
+	unsigned int remaining_instr;
 	so_handler *func;
 	tid_t thread;
 } tdata_t;
