@@ -14,16 +14,19 @@ int so_init(unsigned int time_quantum, unsigned int io)
 tid_t so_fork(so_handler *func, unsigned int priority)
 {
 	tdata_t *thread;
+
 	if (func == 0 || priority > SO_MAX_PRIO)
 		return INVALID_TID;
+
 	thread = malloc(sizeof(tdata_t));
-	if (thread == NULL) {
+	if (thread == NULL)
 		exit(12);
-	}
+
 	thread->func = func;
 	thread->priority = priority;
 	thread->remaining_instr = time_to_check;
-	if(pthread_create(&thread->thread, NULL, &start_thread, thread)) {
+
+	if (pthread_create(&thread->thread, NULL, &start_thread, thread)) {
 		perror("Create");
 		exit(1);
 	}
@@ -55,11 +58,11 @@ int so_signal(unsigned int io)
 	return 0;
 }
 
-void so_exec()
+void so_exec(void)
 {
 }
 
-void so_end()
+void so_end(void)
 {
 	tdata_t *td;
 

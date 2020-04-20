@@ -16,10 +16,8 @@ typedef struct {
 } tdata_t;
 
 static pthread_mutex_t mutex_core;
-static unsigned int io_devices = 0;
-static unsigned int time_to_check = 0;
-
-static PQueue *planner = NULL;
+static unsigned int io_devices, time_to_check;
+static PQueue *planner;
 
 void *start_thread(void *params);
 
@@ -27,6 +25,7 @@ int compare_threads(const void *thread1, const void *thread2)
 {
 	const tdata_t *elem1 = thread1;
 	const tdata_t *elem2 = thread2;
+
 	return elem2->priority - elem1->priority;
 }
 
