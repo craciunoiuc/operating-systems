@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <semaphore.h>
 #include "./so_scheduler.h"
 #include "./priorityqueue.h"
 
@@ -26,7 +27,7 @@ int compare_threads(const void *thread1, const void *thread2)
 	const tdata_t *elem1 = thread1;
 	const tdata_t *elem2 = thread2;
 
-	return elem2->priority - elem1->priority;
+	return elem1->priority - elem2->priority;
 }
 
 #endif /*_TEMA_LIN*/
