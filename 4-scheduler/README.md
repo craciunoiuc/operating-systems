@@ -23,8 +23,6 @@ Organizare
 * nou cu datele sale si este adaugat in coada. Thread-urile ruleaza unul cate
 * unul, deoarece modul de rulare presupune un singur core.
 
-TODO 
-
 Implementare
 -
 
