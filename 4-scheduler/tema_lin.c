@@ -2,17 +2,22 @@
 
 int so_init(unsigned int time_quantum, unsigned int io)
 {
+	int ret;
+
 	if (time_quantum == 0 || io > SO_MAX_NUM_EVENTS || planner != NULL)
 		return -1;
+
 	io_devices = io;
 	time_to_check = time_quantum;
 	planner = pqueue_new(compare_threads, SO_MAX_THREADS);
-	pthread_mutex_init(&mutex_core, NULL);
+	ret = pthread_mutex_init(&mutex_core, NULL);
+	DIE(ret != 0, "Mutex Init");
 	return 0;
 }
 
 tid_t so_fork(so_handler *func, unsigned int priority)
 {
+	int ret;
 	tdata_t *thread;
 
 	if (func == 0 || priority > SO_MAX_PRIO)
@@ -26,21 +31,22 @@ tid_t so_fork(so_handler *func, unsigned int priority)
 	thread->priority = priority;
 	thread->remaining_instr = time_to_check;
 
-	if (pthread_create(&thread->thread, NULL, &start_thread, thread)) {
-		perror("Create");
-		exit(1);
-	}
+	ret = pthread_create(&thread->thread, NULL, &start_thread, thread);
+	DIE(ret != 0, "Thread Create");
 	pqueue_enqueue(planner, thread);
 	return thread->thread;
 }
 
 void *start_thread(void *params)
 {
+	int return_val;
 	tdata_t *data = (tdata_t *)params;
 
-	pthread_mutex_lock(&mutex_core);
+	return_val = pthread_mutex_lock(&mutex_core);
+	DIE(return_val != 0, "Mutex Lock");
 	(*data->func)(data->priority);
-	pthread_mutex_unlock(&mutex_core);
+	return_val = pthread_mutex_unlock(&mutex_core);
+	DIE(return_val != 0, "Mutex Unlock");
 	return NULL;
 }
 
@@ -64,6 +70,7 @@ void so_exec(void)
 
 void so_end(void)
 {
+	int ret;
 	tdata_t *td;
 
 	if (planner != NULL) {
@@ -74,7 +81,8 @@ void so_end(void)
 			free(td);
 		}
 		pqueue_delete(planner);
-		pthread_mutex_destroy(&mutex_core);
+		ret = pthread_mutex_destroy(&mutex_core);
+		DIE(ret != 0, "Mutex Destroy");
 		planner = NULL;
 	}
 }
