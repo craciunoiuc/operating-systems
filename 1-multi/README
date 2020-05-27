@@ -1,0 +1,56 @@
+========================== Tema 1 - C Preprocessor =============================
+Nume: Craciunoiu Cezar
+Grupa: 334CA
+
+(Mai jos se foloseste structura oferita pe ocw: "README - how to")
+
+--Organizare--
+
+In tema s-a ales sa se implementeze preprocesorul prin citirea fiecarei linii
+si verificarea daca incepe cu "#" sau nu. Daca da, linia e comparata cu toate
+directivele ce au trebuit fi implementate. Daca nu incepe cu "#" se trece prin
+fiecare grupare de litere care nu sunt delimitatoare si se verifica daca
+reprezinta o vreun element de tip define.
+Codul are un comportament asemanator cu un bloc de switch. In functie de
+primele caractere de pe fiecare linie se apeleaza o functie diferita. Fiecare
+din aceste functie trateaza cazul directivei lor si apoi se trece la linia
+urmatoare.
+
+Pentru implementarea define-urilor s-a utilizat un hashtable ce lucreaza cu
+chei-valori de forma char*-char*. Hashtable-ul reprezinta o implementare
+proprie si realizeaza adaugarea si eliminarea elementelor din el in mod
+transparent.
+
+-Obligatoriu-
+
+-"Consideri ca tema este utila?"
+-Nu, gradul de dificultate depaseste cu mult scopul initial al temei.
+
+-"Consideri implementarea naiva, eficienta, se putea mai bine?
+-Implementarea este destul de simplista, fiind susceptibila la multe cazuri
+ speciale ce nu sunt printre teste (in acelasi timp, un preprocesor de cod nu
+ este cel mai simplist lucru).
+
+
+--Implementare--
+-Intregul enunt al temei este implementat.
+-Nu exista functionalitati extra
+-Nu exista functionalitati lipsa
+-Dificultati intampinate: aranjarea codului cand este impusa o restrictie de
+ 80 de caractere pe linie si tab-uri de 8 caractere.
+-Lucruri interesante descoperite pe parcurs: asemanarea dintre lucrul cu
+ obiecte in C si in Python.
+
+--Cum se compileaza si cum se ruleaza?--
+-Compilarea se realizeaza cu make/nmake specificandu-se makefile-ul dorit.
+-Executabilul se ruleaza la fel ca in cerinta temei (eventual cu scriptul, daca
+ se doreste).
+
+--Bibliografie--
+https://www-numi.fnal.gov/offline_software/srt_public_context/WebDocs/Errors/unix_system_errors.html
+-Stack Overflow
+
+--Git--
+-Nu s-a folosit
+
+===============================================================================
